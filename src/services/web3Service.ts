@@ -28,8 +28,8 @@ export interface ProductVerification {
 }
 
 export class Web3Service {
-  private provider: ethers.JsonRpcProvider;
-  private wallet: ethers.Wallet;
+  private provider!: ethers.JsonRpcProvider;
+  private wallet!: ethers.Wallet;
   private contract: ethers.Contract | null = null;
 
   constructor() {

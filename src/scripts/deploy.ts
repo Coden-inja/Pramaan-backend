@@ -16,7 +16,7 @@ if (!privateKey) {
 async function main() {
   console.log('🚀 Connecting to Polygon Amoy Testnet...');
   const provider = new ethers.JsonRpcProvider(rpcUrl);
-  const wallet = new ethers.Wallet(privateKey, provider);
+  const wallet = new ethers.Wallet(privateKey!, provider);
   
   console.log(`🔑 Deploying from wallet address: ${wallet.address}`);
   const balance = await provider.getBalance(wallet.address);

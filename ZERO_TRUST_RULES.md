@@ -4,7 +4,8 @@ This document establishes the absolute, mandatory engineering guidelines for the
 
 ---
 
-## 📋 The 5 Golden Rules of Zero-Trust Development
+## 📋 Workflow Rules
+These rules govern how the AI assistant approaches code auditing, web searches, diagnostics, command execution, and resource checks during development.
 
 ### Rule 1: Never Predict Local Versions
 *   **The Problem:** Relying on semver ranges (like `^5.6.1`) in `package.json` can lead to installing slightly newer or different sub-versions on different machines, causing silent compiler breaks.
@@ -29,6 +30,39 @@ This document establishes the absolute, mandatory engineering guidelines for the
 *   **The Problem:** Running multiple commands in rapid succession to "see if it works" is bad engineering and wastes development cycles.
 *   **The Rule:** Explain the precise technical purpose and the verified reasoning behind every command *before* requesting user approval.
 
+### Rule 6: Proactive External Resource Verification
+*   **The Problem:** The local filesystem and codebase cannot see external, real-world states (e.g., live wallet balances, third-party API usage limits, cloud billing statuses, or physical server states). Proposing live commands assuming these are ready can lead to silent failures or wasted transaction attempts.
+*   **The Rule:** You **MUST** proactively ask the user to explicitly confirm that external funding, credentials, account permissions, and third-party resources are ready *before* proposing any command that executes against them.
+
+### Rule 7: Hands-Off Testing Phase / Dev Command Ownership
+*   **The Problem:** If the AI executes long-running dev servers (`npm run dev`) or triggers interactive API requests for final testing, it deprives the user of first-hand console visibility, runtime logs, and operational self-reliance. In real CI/CD and production environments, no AI exists to run the app; the human developer must own the execution.
+*   **The Rule:** You are **strictly forbidden** from proposing or executing long-running dev commands, runtime servers, or interactive testing suites meant for final live verification. You may run compilers, type-checkers, test-compiles, or diagnostics scripts to locate bugs, but the **final testing, dev server execution, and endpoint verification must remain entirely in the user's hands** to build operational developer mastery.
+
+### Rule 8: Never Trust Blindly / Mandatory Verification
+*   **The Problem:** Humans under development momentum can easily overlook a minor console warning, a rejected database index, or a silent validator exception. If the AI blindly accepts verbal statements of "it works" or "it succeeded", it risks building subsequent code layers on top of a hidden flaw.
+*   **The Rule:** You **MUST NEVER** proceed to subsequent development phases based solely on a verbal report of execution success. You **MUST** ask the user to paste the exact console trace, terminal outputs, or log segments to verify the execution state yourself before starting the next integration task.
+
+### Rule 9: Prioritize Quick and Definite Verification (Build-First Auditing)
+*   **The Problem:** Manually reading massive source code files to scan for typos or compile bugs is slow and prone to human oversight.
+*   **The Rule:** If a fast, simple verification action exists that gives absolute, 100% accurate compiler results (such as running a test build, a TypeScript syntax check, or a local compiler run), **always execute that action first** rather than guessing or manually inspecting code.
+
+---
+
+## 🎯 Meta-Rules (Ruleset Governance)
+These rules do not govern our development workflow directly, but instead define the strict boundaries of what is allowed to be written inside this file to prevent bloat.
+
+### Meta-Rule 1: Ruleset Contribution Threshold
+*   **The Problem:** Documenting minor successes, standard type warnings, or routine coding fixes bloats the ruleset, diluting its core authority and making it difficult to scan.
+*   **The Rule:** You are **strictly forbidden** from adding new entries to this ruleset or the Case Study section unless they meet one of the following criteria:
+    *   **Criteria A:** A major architectural paradigm shift that broke conventional patterns (e.g., Hardhat 3's ESM transition).
+    *   **Criteria B:** High-risk runtime bugs that would bypass local testing but silently fail or cause financial loss on production networks.
+    *   **Criteria C:** Fundamental behavioral guidelines that improve AI reasoning precision.
+    *   *Explicit Exclusions:* Do **NOT** document standard TypeScript compiler errors, simple build successes, minor syntax adjustments, or common framework configurations.
+
+### Meta-Rule 2: Adding Important New Method Findings
+*   **The Problem:** Discovering a breakthrough, non-obvious engineering method (such as an advanced decentralized design, a unique library hook, or a major framework workaround) is wasted if it is forgotten in a chat log, forcing future systems to rebuild it from scratch.
+*   **The Rule:** You **MUST** document any newly discovered, non-obvious engineering methods, unique hooks, or major framework workarounds in the Case Study section of this document. This ensures future executions use these verified findings directly for surgical speed, rather than playing guess games.
+
 ---
 
 ## 📈 Zero-Trust Enforcement Checklist (Read this on every blocker!)
@@ -36,13 +70,17 @@ This document establishes the absolute, mandatory engineering guidelines for the
 2.  **Version-Lock Queries:** Is my search query explicitly locked to the exact major/minor version (e.g. `"hardhat" "3.5.1"`) to filter out legacy Hardhat 2 answers?
 3.  **Confirm Plugin Types:** Did I check if the library expects modern ESM plugins or legacy side-effect imports?
 4.  **Isolate & Test:** Have I isolated the diagnostic to a single runtime check using the exact official API?
-5.  **User Alignment:** Have I explained the command and verified logic to the user?
+5.  **External Resource Check:** Have I proactively asked the user to confirm that live wallet funds, API keys, or external states are ready?
+6.  **Hands-Off Dev Check:** Did I keep the long-running dev server and final testing phase in the user's hands (Rule 7)?
+7.  **Terminal Output Verification:** Did I request the exact, raw terminal logs/outputs to verify execution success myself (Rule 8)?
+8.  **Meta-Rules Contribution Check:** Does any proposed edit to this file strictly meet the Meta-Rule 1 & 2 guidelines?
+9.  **User Alignment:** Have I explained the command and verified logic to the user?
 
 ---
 
 ## 💡 Case Study: Applying Zero-Trust to Hardhat 3 & ES Modules
 
-Here is a concrete, real-world example of how we applied these 5 Golden Rules to solve a highly complex, next-generation framework conflict in the Pramaan backend:
+Here is a concrete, real-world example of how we applied these Golden Rules to solve a highly complex, next-generation framework conflict in the Pramaan backend:
 
 ### The Scenario:
 Our backend runs under native Node.js ES Modules (`"type": "module"` in `package.json`). We needed to integrate Ethers.js within a Hardhat 3 sandbox testing suite.
