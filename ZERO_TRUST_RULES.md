@@ -46,6 +46,10 @@ These rules govern how the AI assistant approaches code auditing, web searches, 
 *   **The Problem:** Manually reading massive source code files to scan for typos or compile bugs is slow and prone to human oversight.
 *   **The Rule:** If a fast, simple verification action exists that gives absolute, 100% accurate compiler results (such as running a test build, a TypeScript syntax check, or a local compiler run), **always execute that action first** rather than guessing or manually inspecting code.
 
+### Rule 10: Active Speculative Auditing (ASA)
+*   **The Problem:** Static type-checkers (like `tsc`) only check structural syntax. They are completely blind to browser network behaviors, framework runtime limitations, or DOM double-render warnings (such as passing an empty string `""` to an image `src` or anchor `href`, which triggers infinite relative-path page download loops in React 19 / Next.js).
+*   **The Rule:** You **MUST NOT** declare any UI or full-stack integration complete based solely on a passing static compile check. Before claiming success, you **MUST** actively speculate and trace empty/null attribute fallback states, check for console warning edge cases, and ensure missing dynamic API keys fail gracefully with a premium counterfeit alert shield rather than throwing uncaught exceptions.
+
 ---
 
 ## 🎯 Meta-Rules (Ruleset Governance)

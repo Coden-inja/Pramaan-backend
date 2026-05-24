@@ -7,6 +7,7 @@ import supplierRoutes from './routes/supplier';
 import customerRoutes from './routes/customer';
 import productRoutes from './routes/product';
 import orderRoutes from './routes/order';
+import chatRoutes from './routes/chat';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,6 +42,7 @@ app.use('/api/supplier', supplierRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

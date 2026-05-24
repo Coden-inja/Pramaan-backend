@@ -52,7 +52,7 @@ export const getAllProducts = async (req: AuthRequest, res: Response) => {
   try {
     const { category, search, minPrice, maxPrice, status } = req.query;
 
-    let query: any = { status: 'listed' };
+    let query: any = { status: status || 'verified' };
 
     if (category) query.category = category;
     if (search) query.title = { $regex: search, $options: 'i' };
@@ -76,7 +76,13 @@ export const getProductById = async (req: AuthRequest, res: Response) => {
   try {
     const { productId } = req.params;
 
-    const product = await Product.findById(productId).populate('supplierId', 'businessName craftType rating location bio');
+    const product = await Product.findById(productId).populate({
+      path: 'supplierId',
+      populate: {
+        path: 'userId',
+        select: 'name email role'
+      }
+    });
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
