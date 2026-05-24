@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
+import { ethers } from 'ethers';
 import { User } from '../models/User';
 import { Supplier } from '../models/Supplier';
 import { Customer } from '../models/Customer';
@@ -13,12 +14,12 @@ export const register = [
   body('name').notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('phone').notEmpty().withMessage('Phone is required'),
+  body('phone').optional().isString().withMessage('Phone must be a string'),
   body('role').isIn(['supplier', 'customer']).withMessage('Role must be supplier or customer'),
   body('businessName').if((value, { req }) => req.body.role === 'supplier').notEmpty().withMessage('Business name required for suppliers'),
   body('location').if((value, { req }) => req.body.role === 'supplier').notEmpty().withMessage('Location required for suppliers'),
   body('craftType').if((value, { req }) => req.body.role === 'supplier').notEmpty().withMessage('Craft type required for suppliers'),
-  body('bio').if((value, { req }) => req.body.role === 'supplier').notEmpty().withMessage('Bio required for suppliers'),
+  body('bio').optional().isString().withMessage('Bio must be a string'),
 
   async (req: AuthRequest, res: Response) => {
     const errors = validationResult(req);
@@ -40,7 +41,7 @@ export const register = [
         name,
         email,
         password,
-        phone,
+        phone: phone || '',
         role,
       });
 
@@ -48,6 +49,7 @@ export const register = [
 
       // Create role-specific profile
       if (role === 'supplier') {
+        const wallet = ethers.Wallet.createRandom();
         const supplier = new Supplier({
           userId: user._id,
           businessName,
@@ -58,11 +60,14 @@ export const register = [
           longitude,
           craftType,
           bio,
+          blockchainAddress: wallet.address,
         });
         await supplier.save();
       } else if (role === 'customer') {
+        const wallet = ethers.Wallet.createRandom();
         const customer = new Customer({
           userId: user._id,
+          blockchainAddress: wallet.address,
         });
         await customer.save();
       }

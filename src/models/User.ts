@@ -5,7 +5,7 @@ export interface IUser extends Document {
   role: 'supplier' | 'customer';
   email: string;
   password: string;
-  phone: string;
+  phone?: string;
   name: string;
   avatar?: string;
   isVerified: boolean;
@@ -35,7 +35,7 @@ const userSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
-      required: true,
+      default: null,
     },
     name: {
       type: String,

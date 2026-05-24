@@ -16,6 +16,7 @@ export interface IProduct extends Document {
   blockchainHash?: string;
   blockNumber?: string;
   transactionHash?: string;
+  tokenId?: number;
   craftDetails: {
     technique: string;
     region: string;
@@ -73,6 +74,7 @@ const productSchema = new Schema<IProduct>(
     blockchainHash: String,
     blockNumber: String,
     transactionHash: String,
+    tokenId: Number,
     craftDetails: {
       technique: String,
       region: String,

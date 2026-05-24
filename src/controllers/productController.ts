@@ -3,6 +3,7 @@ import { Product } from '../models/Product';
 import { Supplier } from '../models/Supplier';
 import { Order } from '../models/Order';
 import { AuthRequest } from '../middleware/auth';
+import { web3Service } from '../services/web3Service';
 
 // Create product (Supplier only)
 export const createProduct = async (req: AuthRequest, res: Response) => {
@@ -164,42 +165,62 @@ export const mintGITag = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // TODO: Call blockchain service to mint GI tag
-    // For now, simulate with placeholder
-    const blockchainResponse = await simulateBlockchainMint(product);
+    if (!supplier.blockchainAddress) {
+      return res.status(400).json({ message: 'Supplier does not have a blockchain wallet address set!' });
+    }
 
+    // 1. Construct standard ERC721 metadata JSON
+    const metadata = {
+      name: product.title,
+      description: product.description,
+      image: product.images && product.images.length > 0 ? product.images[0] : '',
+      attributes: [
+        { trait_type: 'GI Tag', value: giTag },
+        { trait_type: 'GI Number', value: giNumber },
+        { trait_type: 'Category', value: product.category },
+        { trait_type: 'Materials', value: product.materials.join(', ') },
+        { trait_type: 'Time Taken', value: product.timeTaken },
+        { trait_type: 'Artisan Business', value: supplier.businessName },
+        { trait_type: 'Region', value: supplier.region },
+        { trait_type: 'State', value: supplier.state }
+      ]
+    };
+
+    // 2. Upload metadata to decentralized IPFS via Pinata
+    const metadataURI = await web3Service.pinJSONToIPFS(metadata);
+
+    // 3. Mint the NFT on Polygon Amoy Testnet directly to the artisan's address
+    const blockchainResponse = await web3Service.mintGITag(
+      productId,
+      supplier.blockchainAddress,
+      giTag,
+      metadataURI
+    );
+
+    // 4. Update MongoDB record with official on-chain receipt details
     product.status = 'verified';
     product.giTag = giTag;
     product.giNumber = giNumber;
-    product.blockchainHash = blockchainResponse.hash;
+    product.blockchainHash = blockchainResponse.blockchainHash;
     product.blockNumber = blockchainResponse.blockNumber.toString();
-    product.transactionHash = blockchainResponse.txHash;
+    product.transactionHash = blockchainResponse.transactionHash;
+    product.tokenId = blockchainResponse.tokenId;
 
     product.timeline.push({
       date: new Date(),
       event: 'GI Tag Minted',
-      description: `Product minted with GI tag ${giTag}`,
+      description: `Product certified securely on-chain. Token ID: #${blockchainResponse.tokenId}. IPFS CID: ${metadataURI}`,
     });
 
     await product.save();
 
     res.status(200).json({
-      message: 'GI Tag minted successfully',
+      message: 'GI Tag certified on-chain successfully!',
       product,
       blockchainData: blockchainResponse,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error minting GI tag:', error);
-    res.status(500).json({ message: 'Failed to mint GI tag' });
+    res.status(500).json({ message: error.message || 'Failed to mint GI tag on-chain' });
   }
-};
-
-// Simulate blockchain minting (replace with real blockchain call)
-const simulateBlockchainMint = async (product: any) => {
-  return {
-    hash: `0x${Math.random().toString(16).substr(2, 64)}`,
-    blockNumber: Math.floor(Math.random() * 100000),
-    txHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-    timestamp: new Date().toISOString(),
-  };
 };

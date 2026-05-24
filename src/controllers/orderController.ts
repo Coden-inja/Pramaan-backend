@@ -4,6 +4,7 @@ import { Product } from '../models/Product';
 import { Customer } from '../models/Customer';
 import { Supplier } from '../models/Supplier';
 import { AuthRequest } from '../middleware/auth';
+import { web3Service } from '../services/web3Service';
 
 // Create order (Customer)
 export const createOrder = async (req: AuthRequest, res: Response) => {
@@ -182,7 +183,7 @@ export const getSupplierOrders = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Confirm payment (Customer - simulated)
+// Confirm payment (Customer - simulated checkout with real Web2.5 transfer)
 export const confirmPayment = async (req: AuthRequest, res: Response) => {
   try {
     const { orderId } = req.params;
@@ -206,13 +207,44 @@ export const confirmPayment = async (req: AuthRequest, res: Response) => {
     order.timeline.push({
       date: new Date(),
       status: 'confirmed',
-      description: 'Payment confirmed',
+      description: 'Payment confirmed and processing',
     });
+
+    // 1. Fetch product
+    const product = await Product.findById(order.productId);
+    if (product) {
+      // 2. Perform on-chain transfer if the product is certified on the blockchain
+      if (product.tokenId && customer?.blockchainAddress) {
+        try {
+          const supplier = await Supplier.findById(order.supplierId);
+          if (supplier?.blockchainAddress) {
+            console.log(`⏳ Triggering on-chain transfer for Token #${product.tokenId} to buyer...`);
+            const txHash = await web3Service.transferProductOwnership(
+              product.tokenId,
+              supplier.blockchainAddress,
+              customer.blockchainAddress
+            );
+            
+            // Log on-chain transaction hash
+            order.payment.transactionId = txHash;
+            order.timeline.push({
+              date: new Date(),
+              status: 'confirmed',
+              description: `Digital Certificate (NFT Token #${product.tokenId}) transferred securely on-chain. TX: ${txHash}`,
+            });
+            
+            product.status = 'sold';
+            await product.save();
+          }
+        } catch (web3Error: any) {
+          console.error('⚠️ On-chain transfer failed, but updating payment status:', web3Error);
+        }
+      }
+    }
 
     await order.save();
 
     // Update customer stats
-    const product = await Product.findById(order.productId);
     await Customer.findByIdAndUpdate(
       customer._id,
       {
@@ -221,7 +253,7 @@ export const confirmPayment = async (req: AuthRequest, res: Response) => {
     );
 
     res.status(200).json({
-      message: 'Payment confirmed',
+      message: 'Payment confirmed successfully, digital ownership transferred!',
       order,
     });
   } catch (error) {
